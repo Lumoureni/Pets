@@ -1,0 +1,70 @@
+<view class="page">
+  <navigation-bar title="我的" logo="/assets/nav-logo.png" back="{{false}}" color="#2B2F36" background="#F4F5F7"></navigation-bar>
+
+  <scroll-view class="page-body" scroll-y type="list">
+    <!-- Profile -->
+    <view class="profile card">
+      <view class="profile-avatar-box">
+        <image class="profile-avatar pixel-img" src="/assets/profile-avatar.png" mode="aspectFill"></image>
+      </view>
+      <view class="profile-info">
+        <text class="profile-name">{{userName}}</text>
+        <text class="profile-desc">和毛孩子一起成长</text>
+      </view>
+    </view>
+
+    <!-- Stats -->
+    <view class="stats card">
+      <view class="stat-item">
+        <text class="stat-value">{{petCount}}</text>
+        <text class="stat-label">宠物</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-value">{{eventCount}}</text>
+        <text class="stat-label">记录</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-value">{{doneCount}}</text>
+        <text class="stat-label">已完成</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-value">{{pendingCount}}</text>
+        <text class="stat-label">待办</text>
+      </view>
+    </view>
+
+    <!-- Menu list -->
+    <view class="menu card">
+      <view
+        class="menu-item"
+        wx:for="{{menus}}"
+        wx:key="key"
+        bindtap="onMenuTap"
+        data-type="{{item.type}}"
+        hover-class="menu-hover"
+      >
+        <view class="menu-icon-wrap">
+          <image class="menu-icon pixel-img" src="{{item.icon}}" mode="aspectFit"></image>
+        </view>
+        <text class="menu-label">{{item.label}}</text>
+        <text class="menu-arrow">›</text>
+      </view>
+    </view>
+
+    <!-- Quick links -->
+    <view class="quick-row">
+      <view class="quick-btn" bindtap="onGoPets" hover-class="quick-hover">
+        <text class="quick-text">去首页管理宠物</text>
+      </view>
+      <view class="quick-btn quick-btn-ghost" bindtap="onGoCommunity" hover-class="quick-hover">
+        <text class="quick-text">逛逛社区</text>
+      </view>
+    </view>
+
+    <view class="version">宠物小窝 · 像素铲屎官</view>
+    <view class="pad-bottom"></view>
+  </scroll-view>
+</view>

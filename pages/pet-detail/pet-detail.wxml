@@ -1,0 +1,109 @@
+<view class="bg-decor">
+  <view class="blob blob-a"></view>
+  <view class="blob blob-b"></view>
+  <view class="blob blob-c"></view>
+</view>
+<navigation-bar title="{{pet.name || '宠物档案'}}" logo="/assets/nav-logo.png" back="{{true}}" color="#2B2F36" background="#F4F5F7"></navigation-bar>
+<scroll-view class="scrollarea" scroll-y type="list">
+  <view class="page-content" wx:if="{{pet}}">
+    <view class="pet-hero card">
+      <view class="pet-hero-top">
+        <view class="pet-hero-avatar orb-surface orb-float" style="background-color: {{pet.avatarBg}}">
+          <view class="orb-shine"></view>
+          <image wx:if="{{pet.avatarType === 'image'}}" class="pet-hero-avatar-img" src="{{pet.avatar}}" mode="aspectFill"></image>
+          <text wx:else class="pet-hero-avatar-emoji">{{pet.avatar}}</text>
+        </view>
+        <view class="pet-hero-info">
+          <view class="pet-hero-name">
+            <text>{{pet.name}}</text>
+            <text wx:if="{{pet.genderIcon}}" class="pet-hero-gender">{{pet.genderIcon}}</text>
+          </view>
+          <text class="pet-hero-meta">{{pet.speciesLabel}} · {{pet.breed || '未填品种'}} · {{pet.ageText}}</text>
+          <text wx:if="{{pet.note}}" class="pet-hero-note">{{pet.note}}</text>
+        </view>
+      </view>
+      <view class="pet-facts">
+        <view class="fact">
+          <text class="fact-label">出生日期</text>
+          <text class="fact-value">{{pet.birthdayText}}</text>
+        </view>
+        <view class="fact-divider"></view>
+        <view class="fact">
+          <text class="fact-label">下次生日</text>
+          <text class="fact-value">{{pet.birthdayLabel}}</text>
+        </view>
+      </view>
+      <view class="pet-facts pet-facts-secondary">
+        <view class="fact">
+          <text class="fact-label">当前体重</text>
+          <text class="fact-value">{{pet.weightText}}</text>
+        </view>
+        <view class="fact-divider"></view>
+        <view class="fact">
+          <text class="fact-label">绝育状态</text>
+          <text class="fact-value">{{pet.neuteredLabel}}</text>
+        </view>
+        <view class="fact-divider"></view>
+        <view class="fact">
+          <text class="fact-label">到家日</text>
+          <text class="fact-value">{{pet.adoptedText}}</text>
+        </view>
+      </view>
+      <view wx:if="{{pet.allergyText}}" class="allergy-badge">⚠️ 过敏 / 病史：{{pet.allergyText}}</view>
+      <view wx:if="{{pet.birthdayDays !== null && pet.birthdayDays <= 30}}" class="birthday-banner">
+        🎂 快到 {{pet.name}} 的 {{pet.birthdayAge}} 岁生日啦，记得准备惊喜
+      </view>
+    </view>
+
+    <view class="section-head">
+      <text class="section-title">成长记录</text>
+      <text class="section-sub">健康 · 日常 · 消费</text>
+    </view>
+
+    <view class="tabs">
+      <view class="tab {{activeTab === 'todo' ? 'tab-active' : ''}}" bindtap="onSwitchTab" data-tab="todo">
+        待办 <text class="tab-count">{{todoCount}}</text>
+      </view>
+      <view class="tab {{activeTab === 'all' ? 'tab-active' : ''}}" bindtap="onSwitchTab" data-tab="all">
+        全部记录 <text class="tab-count">{{totalCount}}</text>
+      </view>
+    </view>
+
+    <block wx:if="{{displayed.length > 0}}">
+      <view
+        class="event-card card"
+        wx:for="{{displayed}}"
+        wx:key="id"
+        bindtap="onEditEvent"
+        data-id="{{item.id}}"
+        hover-class="card-hover"
+      >
+        <view class="event-check {{item.done ? 'event-check-done' : ''}}" catchtap="onToggleDone" data-id="{{item.id}}">
+          <text wx:if="{{item.done}}">✓</text>
+        </view>
+        <view class="event-icon" style="background: {{item.typeBg}}">{{item.typeIcon}}</view>
+        <view class="event-main">
+          <view class="event-title-row">
+            <text class="event-title {{item.done ? 'event-title-done' : ''}}">{{item.title}}</text>
+            <text class="event-status {{item.statusTone}}">{{item.statusText}}</text>
+          </view>
+          <text class="event-date">{{item.fullDateText}} {{item.dateWeekday}} · {{item.typeName}}<block wx:if="{{item.amountText}}"> · {{item.amountText}}</block></text>
+          <text wx:if="{{item.nextDateText}}" class="event-next">下次计划：{{item.nextDateText}}</text>
+          <text wx:if="{{item.note}}" class="event-note">{{item.note}}</text>
+        </view>
+        <text class="event-arrow">›</text>
+      </view>
+    </block>
+
+    <view wx:else class="empty-state">
+      <view class="empty-icon">{{activeTab === 'todo' ? '✅' : '📋'}}</view>
+      <text class="empty-title">{{activeTab === 'todo' ? '暂时没有待办' : '还没有事项记录'}}</text>
+      <text class="empty-desc">{{activeTab === 'todo' ? '所有事项都完成啦，也可以添加疫苗、驱虫计划' : '为毛孩子记下第一次喂食、疫苗或体检吧'}}</text>
+    </view>
+  </view>
+</scroll-view>
+
+<view class="footer-bar footer-row">
+  <view class="btn btn-ghost footer-btn-small" bindtap="onEditPet" hover-class="btn-hover">编辑档案</view>
+  <view class="btn btn-primary footer-btn-large" bindtap="onAddEvent" hover-class="btn-hover">＋ 记录事项</view>
+</view>

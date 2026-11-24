@@ -1,16 +1,32 @@
+const FALLBACK_STATUS_BAR = 20
+const FALLBACK_MENU_HEIGHT = 32
+const FALLBACK_MENU_WIDTH = 95
+
+function getWindowInfo() {
+  if (typeof wx.getWindowInfo === 'function') return wx.getWindowInfo() || {}
+  if (typeof wx.getSystemInfoSync === 'function') return wx.getSystemInfoSync() || {}
+  return {}
+}
+
+function getDeviceInfo() {
+  if (typeof wx.getDeviceInfo === 'function') return wx.getDeviceInfo() || {}
+  return getWindowInfo()
+}
+
 Component({
   options: {
-    multipleSlots: true // 在组件定义时的选项中启用多slot支持
+    multipleSlots: true
   },
-  /**
-   * 组件的属性列表
-   */
   properties: {
     extClass: {
       type: String,
       value: ''
     },
     title: {
+      type: String,
+      value: ''
+    },
+    logo: {
       type: String,
       value: ''
     },
@@ -32,71 +48,84 @@ Component({
     },
     homeButton: {
       type: Boolean,
-      value: false,
+      value: false
     },
     animated: {
-      // 显示隐藏的时候opacity动画效果
       type: Boolean,
       value: true
     },
     show: {
-      // 显示隐藏导航，隐藏的时候navigation-bar的高度占位还在
       type: Boolean,
       value: true,
       observer: '_showChange'
     },
-    // back为true的时候，返回的页面深度
     delta: {
       type: Number,
       value: 1
-    },
+    }
   },
-  /**
-   * 组件的初始数据
-   */
   data: {
-    displayStyle: ''
+    displayStyle: '',
+    ios: true,
+    barStyle: '',
+    contentStyle: ''
   },
   lifetimes: {
     attached() {
-      const rect = wx.getMenuButtonBoundingClientRect()
-      const platform = (wx.getDeviceInfo() || wx.getSystemInfoSync()).platform
-      const isAndroid = platform === 'android'
-      const isDevtools = platform === 'devtools'
-      const { windowWidth, safeArea: { top = 0, bottom = 0 } = {} } = wx.getWindowInfo() || wx.getSystemInfoSync()
-      this.setData({
-        ios: !isAndroid,
-        innerPaddingRight: `padding-right: ${windowWidth - rect.left}px`,
-        leftWidth: `width: ${windowWidth - rect.left}px`,
-        safeAreaTop: isDevtools || isAndroid ? `height: calc(var(--height) + ${top}px); padding-top: ${top}px` : ``
-      })
-    },
-  },
-  /**
-   * 组件的方法列表
-   */
-  methods: {
-    _showChange(show) {
-      const animated = this.data.animated
-      let displayStyle = ''
-      if (animated) {
-        displayStyle = `opacity: ${show ? '1' : '0'
-          };transition:opacity 0.5s;`
-      } else {
-        displayStyle = `display: ${show ? '' : 'none'}`
-      }
-      this.setData({
-        displayStyle
-      })
-    },
-    back() {
-      const data = this.data
-      if (data.delta) {
-        wx.navigateBack({
-          delta: data.delta
-        })
-      }
-      this.triggerEvent('back', { delta: data.delta }, {})
+      this.updateLayout()
     }
   },
+  methods: {
+    updateLayout() {
+      const info = getWindowInfo()
+      const device = getDeviceInfo()
+      const platform = device.platform || info.platform || 'devtools'
+      const windowWidth = info.windowWidth || 375
+      const safeTop = (info.safeArea && info.safeArea.top) || 0
+      const statusBarHeight = info.statusBarHeight || safeTop || FALLBACK_STATUS_BAR
+
+      let menu = null
+      if (typeof wx.getMenuButtonBoundingClientRect === 'function') {
+        const rect = wx.getMenuButtonBoundingClientRect()
+        if (rect && rect.width > 0 && rect.height > 0 && rect.left > 0) {
+          menu = rect
+        }
+      }
+      if (!menu) {
+        menu = {
+          top: statusBarHeight + 6,
+          height: FALLBACK_MENU_HEIGHT,
+          left: Math.max(0, windowWidth - FALLBACK_MENU_WIDTH),
+          width: FALLBACK_MENU_WIDTH - 8
+        }
+      }
+
+      const menuGap = Math.max(4, menu.top - statusBarHeight)
+      const barHeight = menu.height + menuGap * 2
+      const menuWidth = Math.max(0, windowWidth - menu.left)
+
+      this.setData({
+        ios: platform !== 'android',
+        barStyle: `height:${statusBarHeight + barHeight}px;padding-top:${statusBarHeight}px;padding-right:${menuWidth}px;`,
+        contentStyle: `height:${barHeight}px;`
+      })
+    },
+    _showChange(show) {
+      const displayStyle = this.data.animated
+        ? `opacity:${show ? 1 : 0};transition:opacity 0.3s;`
+        : `display:${show ? 'block' : 'none'};`
+      this.setData({ displayStyle })
+    },
+    back() {
+      const { delta } = this.data
+      if (delta) {
+        wx.navigateBack({ delta })
+      }
+      this.triggerEvent('back', { delta }, {})
+    },
+    home() {
+      wx.switchTab({ url: '/pages/index/index' })
+      this.triggerEvent('home', {}, {})
+    }
+  }
 })
