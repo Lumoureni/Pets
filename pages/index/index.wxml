@@ -14,7 +14,7 @@
           data-id="{{item.id}}"
           hover-class="banner-pet-hover"
         >
-          <image class="banner-pet-img pixel-img" src="{{item.img}}" mode="widthFix"></image>
+          <view class="banner-pet-img pixel-img" style="background-image: url('{{item.img}}'); background-position: -{{item.frame * 160}}rpx 0"></view>
           <text class="banner-pet-name">{{item.name}}</text>
         </view>
       </view>
@@ -31,19 +31,22 @@
         <text class="feature-title">快捷记录</text>
         <text class="feature-sub">点一下就记好</text>
       </view>
-      <view
-        class="feature-item"
-        wx:for="{{features}}"
-        wx:key="key"
-        bindtap="onFeatureTap"
-        data-page="{{item.page}}"
-        data-key="{{item.key}}"
-        hover-class="feature-hover"
-      >
-        <view class="feature-icon-wrap">
-          <image class="feature-icon pixel-img" src="{{item.icon}}" mode="aspectFit"></image>
+      <view class="feature-grid">
+        <view
+          class="feature-item"
+          wx:for="{{features}}"
+          wx:key="key"
+          bindtap="onFeatureTap"
+          data-page="{{item.page}}"
+          data-key="{{item.key}}"
+          hover-class="feature-hover"
+        >
+          <view class="feature-icon-wrap" style="background: {{item.bg}}">
+            <image class="feature-icon pixel-img" src="{{item.icon}}" mode="aspectFit"></image>
+            <view wx:if="{{item.key === 'inventory' && stockAlerts.length > 0}}" class="feature-badge">{{stockAlerts.length}}</view>
+          </view>
+          <text class="feature-label">{{item.label}}</text>
         </view>
-        <text class="feature-label">{{item.label}}</text>
       </view>
     </view>
 
@@ -75,16 +78,42 @@
       <view wx:else class="task-empty">今天没有到期事项，去看看日历安排吧</view>
     </view>
 
+    <!-- Stock alerts -->
+    <block wx:if="{{stockAlerts.length > 0}}">
+      <view class="section-head">
+        <text class="section-title">库存提醒</text>
+        <text class="section-sub">共 {{stockAlerts.length}} 项</text>
+      </view>
+      <view class="reminder-list">
+        <view
+          class="reminder-card card"
+          wx:for="{{stockAlerts}}"
+          wx:key="id"
+          bindtap="onStockAlertTap"
+          data-pet-id="{{item.petId}}"
+          hover-class="card-hover"
+        >
+          <view class="reminder-dot {{item.tone}}"></view>
+          <view class="reminder-main">
+            <text class="reminder-title">{{item.title}}</text>
+            <text class="reminder-detail">{{item.detail}} · 点击补货</text>
+          </view>
+          <text class="reminder-arrow">›</text>
+        </view>
+      </view>
+    </block>
+
     <!-- Owner row -->
-    <view class="owner-row card">
+    <view class="owner-row card" bindtap="onGoMine" hover-class="card-hover">
       <view class="owner-avatar-wrap">
         <image class="owner-avatar pixel-img" src="/assets/nav-logo.png" mode="aspectFit"></image>
       </view>
       <view class="owner-meta">
         <text class="owner-name">{{userName}}</text>
-        <text class="owner-desc">的小窝</text>
+        <text class="owner-desc">的小窝 · {{petCount}} 位住户</text>
       </view>
       <text class="owner-tag">主人</text>
+      <text class="owner-arrow">›</text>
     </view>
 
     <!-- Reminders -->
@@ -119,20 +148,40 @@
 
   <view wx:if="{{quickVisible}}" class="modal-mask" bindtap="onQuickClose">
     <view class="modal-card card" catchtap="noop">
-      <text class="modal-title">快速记录 · {{quickTitle}}</text>
+      <text class="modal-title">{{quickType == 'inventory' ? '库存记录' : '快速记录 · ' + quickTitle}}</text>
       <picker mode="selector" range="{{quickPetNames}}" value="{{quickPetIndex}}" bindchange="onQuickPickPet">
         <view class="modal-field">
           <text class="modal-label">毛孩子</text>
           <text class="modal-value">{{quickPetNames[quickPetIndex] || '请选择'}}</text>
         </view>
       </picker>
-      <view class="modal-field">
+      <view wx:if="{{quickType == 'inventory'}}" class="modal-stock">当前库存：{{quickStockText}}</view>
+      <block wx:if="{{quickType == 'inventory'}}">
+        <view class="modal-field">
+          <text class="modal-label">采购罐头</text>
+          <input class="modal-input" type="number" value="{{quickCans}}" placeholder="个数，例如：12" placeholder-class="field-placeholder" bindinput="onQuickCansInput" />
+        </view>
+        <view class="modal-field">
+          <text class="modal-label">采购猫粮</text>
+          <input class="modal-input" type="number" value="{{quickKibble}}" placeholder="克数，例如：2000" placeholder-class="field-placeholder" bindinput="onQuickKibbleInput" />
+        </view>
+        <view class="modal-field">
+          <text class="modal-label">罐头日耗</text>
+          <input class="modal-input" type="number" value="{{quickDailyCans}}" placeholder="个/天，例如：1" placeholder-class="field-placeholder" bindinput="onQuickDailyCansInput" />
+        </view>
+        <view class="modal-field">
+          <text class="modal-label">猫粮日耗</text>
+          <input class="modal-input" type="number" value="{{quickDailyKibble}}" placeholder="g/天，例如：80" placeholder-class="field-placeholder" bindinput="onQuickDailyKibbleInput" />
+        </view>
+        <view class="modal-tip">按预计日耗计算耗尽时间，剩余 ≤ 3 天会在首页提醒</view>
+      </block>
+      <view wx:else class="modal-field">
         <text class="modal-label">{{quickValueLabel}}</text>
         <input class="modal-input" value="{{quickAmount}}" placeholder="{{quickValueUnit}}" placeholder-class="field-placeholder" bindinput="onQuickAmountInput" />
       </view>
       <view class="modal-actions">
         <view class="modal-btn modal-cancel" bindtap="onQuickClose">取消</view>
-        <view class="modal-btn modal-confirm" bindtap="onQuickConfirm">记一笔</view>
+        <view class="modal-btn modal-confirm" bindtap="onQuickConfirm">{{quickType == 'inventory' ? '保存库存' : '记一笔'}}</view>
       </view>
     </view>
   </view>

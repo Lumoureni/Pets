@@ -1,16 +1,20 @@
-.profile {
+.room-card {
+  padding: 28rpx 24rpx 22rpx;
+  margin-bottom: 24rpx;
+  background: #FFFFFF;
+}
+
+.room-head {
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 40rpx 32rpx;
-  margin-bottom: 24rpx;
-  background: linear-gradient(135deg, #FFFFFF 0%, #FFF5F7 100%);
+  margin-bottom: 22rpx;
 }
 
 .profile-avatar-box {
-  width: 140rpx;
-  height: 140rpx;
-  border-radius: 32rpx;
+  width: 110rpx;
+  height: 110rpx;
+  border-radius: 28rpx;
   overflow: hidden;
   border: 4rpx solid #2B2F36;
   box-shadow: 6rpx 6rpx 0 rgba(43, 47, 54, 0.12);
@@ -41,6 +45,86 @@
   font-size: 26rpx;
   color: #9AA0A8;
   margin-top: 10rpx;
+}
+
+.room-scene {
+  position: relative;
+  height: 300rpx;
+  border-radius: 24rpx;
+  overflow: hidden;
+  background: linear-gradient(180deg, #FDEBF0 0%, #FBD8E2 100%);
+  border: 3rpx solid #2B2F36;
+}
+
+.room-window {
+  position: absolute;
+  top: 24rpx;
+  left: 28rpx;
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 18rpx;
+  background: #FFF7D6;
+  border: 3rpx solid #2B2F36;
+  box-shadow: 4rpx 4rpx 0 rgba(43, 47, 54, 0.12);
+}
+
+.room-rug {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: 28rpx;
+  height: 76rpx;
+  border-radius: 38rpx;
+  background: #F4B8C8;
+  border: 3rpx solid #EFA8BB;
+}
+
+.room-pet {
+  position: absolute;
+  bottom: 44rpx;
+  width: 120rpx;
+  height: 120rpx;
+  background-repeat: no-repeat;
+  background-size: 1560rpx 120rpx;
+  transition: left 0.5s linear, bottom 0.4s ease, transform 0.4s ease;
+}
+
+.room-pet.nap {
+  bottom: 36rpx;
+}
+
+.room-pet.sleep {
+  bottom: 24rpx;
+  transform: scaleY(0.82);
+}
+
+.room-zzz {
+  position: absolute;
+  top: -10rpx;
+  right: -6rpx;
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #8A3E52;
+  text-shadow: 2rpx 2rpx 0 #FFFFFF;
+}
+
+.room-empty {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  text-align: center;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #8A3E52;
+}
+
+.room-caption {
+  margin-top: 16rpx;
+  text-align: center;
+  font-size: 22rpx;
+  color: #9AA0A8;
 }
 
 .stats {

@@ -2,52 +2,33 @@ const store = require('../../utils/store.js')
 const dateUtil = require('../../utils/date.js')
 
 const FEATURES = [
-  { key: 'feed', label: '快速喂食', icon: '/assets/icon-feed.png', page: 'feed' },
-  { key: 'vaccine', label: '疫苗提醒', icon: '/assets/icon-vaccine.png', page: 'vaccine' },
-  { key: 'walk', label: '遛弯记录', icon: '/assets/icon-walk.png', page: 'walk' },
-  { key: 'health', label: '健康统计', icon: '/assets/icon-health.png', page: 'health' }
+  { key: 'inventory', label: '库存记录', icon: '/assets/icon-feed.png', page: 'inventory', bg: '#FFF0D9' },
+  { key: 'vaccine', label: '疫苗提醒', icon: '/assets/icon-vaccine.png', page: 'vaccine', bg: '#FFE7DF' },
+  { key: 'walk', label: '遛弯记录', icon: '/assets/icon-walk.png', page: 'walk', bg: '#DDF4EC' },
+  { key: 'health', label: '健康统计', icon: '/assets/icon-health.png', page: 'health', bg: '#E8EAFD' }
 ]
 
-const BREED_RULES = {
-  cat: [
-    { keys: ['橘', 'orange'], img: '/assets/banner-pets/cat-orange.png' },
-    { keys: ['奶牛', '黑白', 'tuxedo'], img: '/assets/banner-pets/cat-tuxedo.png' },
-    { keys: ['三花', 'calico'], img: '/assets/banner-pets/cat-calico.png' },
-    { keys: ['暹罗', 'siamese'], img: '/assets/banner-pets/cat-siamese.png' },
-    { keys: ['黑猫', 'black'], img: '/assets/banner-pets/cat-black.png' },
-    { keys: ['英短', '蓝猫', 'british'], img: '/assets/banner-pets/cat-british.png' }
-  ],
-  dog: [
-    { keys: ['柯基', 'corgi'], img: '/assets/banner-pets/dog-corgi.png' },
-    { keys: ['柴犬', '柴狗', 'shiba'], img: '/assets/banner-pets/dog-shiba.png' },
-    { keys: ['金毛', 'golden'], img: '/assets/banner-pets/dog-golden.png' },
-    { keys: ['哈士奇', '二哈', 'husky'], img: '/assets/banner-pets/dog-husky.png' },
-    { keys: ['泰迪', '贵宾', 'poodle'], img: '/assets/banner-pets/dog-poodle.png' },
-    { keys: ['法斗', '斗牛', 'french'], img: '/assets/banner-pets/dog-frenchie.png' }
-  ]
-}
-
-const DEFAULT_BANNER_PET = {
-  cat: ['/assets/banner-pets/cat-orange.png', '/assets/banner-pets/cat-calico.png', '/assets/banner-pets/cat-british.png'],
-  dog: ['/assets/banner-pets/dog-corgi.png', '/assets/banner-pets/dog-shiba.png', '/assets/banner-pets/dog-husky.png'],
-  other: ['/assets/banner-pets/cat-tuxedo.png', '/assets/banner-pets/dog-golden.png']
-}
+const PET_ANIM_FRAMES = 12
+const PET_ANIM_TICK = 240
 
 function bannerPetImage(pet, index) {
-  const breed = String(pet.breed || '').toLowerCase()
-  const rules = BREED_RULES[pet.species] || []
-  const match = rules.find(rule => rule.keys.some(key => breed.indexOf(key) >= 0))
-  if (match) return match.img
-  const defaults = DEFAULT_BANNER_PET[pet.species] || DEFAULT_BANNER_PET.other
-  return defaults[index % defaults.length]
+  if (pet && pet.spriteSheet) return pet.spriteSheet
+  return store.spriteFor(pet, index).sheet
+}
+
+function isNonNegative(value) {
+  const text = String(value === undefined || value === null ? '' : value).trim()
+  return text !== '' && isFinite(Number(text)) && Number(text) >= 0
 }
 
 Page({
   data: {
     features: FEATURES,
     bannerPets: [],
+    petCount: 0,
     reminders: [],
     dueTasks: [],
+    stockAlerts: [],
     quickVisible: false,
     quickType: 'feed',
     quickTitle: '喂食',
@@ -57,11 +38,51 @@ Page({
     quickPetIds: [],
     quickPetIndex: 0,
     quickAmount: '',
+    quickCans: '',
+    quickKibble: '',
+    quickDailyCans: '',
+    quickDailyKibble: '',
+    quickStockText: '',
     userName: '小铲屎官'
   },
 
   onShow() {
     this.refresh()
+    this.startPetAnimation()
+  },
+
+  onHide() {
+    this.stopPetAnimation()
+  },
+
+  onUnload() {
+    this.stopPetAnimation()
+  },
+
+  startPetAnimation() {
+    if (this._petTimer) return
+    this._petTimer = setInterval(() => {
+      const pets = this.data.bannerPets
+      if (!pets.length) return
+      const next = pets.map(pet => {
+        let frame
+        if (Math.random() < 0.7) {
+          frame = (pet.frame + 1) % PET_ANIM_FRAMES
+        } else {
+          frame = Math.floor(Math.random() * PET_ANIM_FRAMES)
+          if (frame === pet.frame) frame = (frame + 1) % PET_ANIM_FRAMES
+        }
+        return Object.assign({}, pet, { frame })
+      })
+      this.setData({ bannerPets: next })
+    }, PET_ANIM_TICK)
+  },
+
+  stopPetAnimation() {
+    if (this._petTimer) {
+      clearInterval(this._petTimer)
+      this._petTimer = null
+    }
   },
 
   refresh() {
@@ -100,19 +121,24 @@ Page({
     const bannerPets = petViews.slice(0, 3).map((pet, index) => ({
       id: pet.id,
       name: pet.name || '毛孩子',
-      img: bannerPetImage(pet, index)
+      img: bannerPetImage(pet, index),
+      frame: Math.floor(Math.random() * PET_ANIM_FRAMES)
     }))
+
+    const stockAlerts = store.getStockAlerts()
 
     this.setData({
       bannerPets,
+      petCount: pets.length,
       reminders: reminders.slice(0, 3),
-      dueTasks
+      dueTasks,
+      stockAlerts
     })
   },
 
   onFeatureTap(e) {
     const { key } = e.currentTarget.dataset
-    if (key === 'feed' || key === 'walk') {
+    if (key === 'inventory' || key === 'walk') {
       this.openQuickRecord(key)
       return
     }
@@ -137,13 +163,20 @@ Page({
       return
     }
     const meta = store.typeOf(type)
+    const firstPetId = pets[0].id
+    const inventory = type === 'inventory' ? store.getInventory(firstPetId) : null
     this.setData({
       quickVisible: true,
       quickType: type,
-      quickTitle: meta.defaultTitle,
+      quickTitle: type === 'inventory' ? '库存记录' : meta.defaultTitle,
       quickValueLabel: meta.valueLabel,
       quickValueUnit: meta.unit,
       quickAmount: '',
+      quickCans: '',
+      quickKibble: '',
+      quickDailyCans: '',
+      quickDailyKibble: '',
+      quickStockText: inventory ? inventory.stockText : '暂无库存记录',
       quickPetNames: pets.map(pet => pet.name),
       quickPetIds: pets.map(pet => pet.id),
       quickPetIndex: 0
@@ -157,16 +190,42 @@ Page({
   noop() {},
 
   onQuickPickPet(e) {
-    this.setData({ quickPetIndex: Number(e.detail.value) })
+    const index = Number(e.detail.value)
+    const petId = this.data.quickPetIds[index]
+    const inventory = this.data.quickType === 'inventory' && petId ? store.getInventory(petId) : null
+    this.setData({
+      quickPetIndex: index,
+      quickStockText: inventory ? inventory.stockText : '暂无库存记录'
+    })
   },
 
   onQuickAmountInput(e) {
     this.setData({ quickAmount: e.detail.value })
   },
 
+  onQuickCansInput(e) {
+    this.setData({ quickCans: e.detail.value })
+  },
+
+  onQuickKibbleInput(e) {
+    this.setData({ quickKibble: e.detail.value })
+  },
+
+  onQuickDailyCansInput(e) {
+    this.setData({ quickDailyCans: e.detail.value })
+  },
+
+  onQuickDailyKibbleInput(e) {
+    this.setData({ quickDailyKibble: e.detail.value })
+  },
+
   onQuickConfirm() {
     const petId = this.data.quickPetIds[this.data.quickPetIndex]
     if (!petId) return
+    if (this.data.quickType === 'inventory') {
+      this.confirmInventory(petId)
+      return
+    }
     store.saveEvent({
       petId,
       type: this.data.quickType,
@@ -180,6 +239,58 @@ Page({
     this.setData({ quickVisible: false })
     wx.showToast({ title: '已记录', icon: 'success' })
     this.refresh()
+  },
+
+  confirmInventory(petId) {
+    const { quickCans, quickKibble, quickDailyCans, quickDailyKibble } = this.data
+    const values = [quickCans, quickKibble, quickDailyCans, quickDailyKibble]
+    if (!values.every(isNonNegative)) {
+      wx.showToast({ title: '请填写有效的数量', icon: 'none' })
+      return
+    }
+    const cans = Number(quickCans) || 0
+    const kibble = Number(quickKibble) || 0
+    const dailyCans = Number(quickDailyCans) || 0
+    const dailyKibble = Number(quickDailyKibble) || 0
+    if (!cans && !kibble) {
+      wx.showToast({ title: '请至少填写一项采购数量', icon: 'none' })
+      return
+    }
+    if (!dailyCans && !dailyKibble) {
+      wx.showToast({ title: '请填写预计每日消耗量', icon: 'none' })
+      return
+    }
+
+    const inventory = store.saveInventoryPurchase({ petId, cans, kibble, dailyCans, dailyKibble })
+    this.setData({ quickVisible: false })
+    const emptyItems = []
+    if (dailyCans > 0 && inventory.remainingCans <= 0) emptyItems.push('罐头')
+    if (dailyKibble > 0 && inventory.remainingKibble <= 0) emptyItems.push('猫粮')
+
+    if (emptyItems.length) {
+      wx.showModal({
+        title: '库存耗尽提醒',
+        content: `${inventory.petName}的${emptyItems.join('、')}库存预计已耗尽，请及时补货。`,
+        showCancel: false,
+        confirmText: '知道了'
+      })
+    } else {
+      wx.showToast({ title: '库存已记录', icon: 'success' })
+    }
+    this.refresh()
+  },
+
+  onStockAlertTap(e) {
+    const { petId } = e.currentTarget.dataset
+    this.openQuickRecord('inventory')
+    if (!petId) return
+    const index = this.data.quickPetIds.indexOf(petId)
+    if (index < 0) return
+    const inventory = store.getInventory(petId)
+    this.setData({
+      quickPetIndex: index,
+      quickStockText: inventory ? inventory.stockText : '暂无库存记录'
+    })
   },
 
   onOpenCalendar() {

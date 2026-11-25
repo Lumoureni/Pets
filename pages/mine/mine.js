@@ -21,10 +21,13 @@ const MENUS = [
   }
 ]
 
+const ROOM_TICK = 520
+
 Page({
   data: {
     menus: MENUS,
     userName: '小铲屎官',
+    roomPets: [],
     petCount: 0,
     eventCount: 0,
     doneCount: 0,
@@ -33,18 +36,95 @@ Page({
 
   onShow() {
     this.refresh()
+    this.startRoomAnimation()
+  },
+
+  onHide() {
+    this.stopRoomAnimation()
+  },
+
+  onUnload() {
+    this.stopRoomAnimation()
+  },
+
+  startRoomAnimation() {
+    if (this._roomTimer) return
+    this._roomTimer = setInterval(() => {
+      const pets = this.data.roomPets
+      if (!pets.length) return
+      const next = pets.map(pet => {
+        const nextPet = Object.assign({}, pet)
+        nextPet.ticks += 1
+
+        if (nextPet.ticks >= nextPet.nextIn) {
+          const roll = Math.random()
+          nextPet.state = roll < 0.45 ? 'roam' : (roll < 0.75 ? 'nap' : 'sleep')
+          nextPet.ticks = 0
+          nextPet.nextIn = nextPet.state === 'roam'
+            ? 3 + Math.floor(Math.random() * 4)
+            : (nextPet.state === 'nap' ? 4 + Math.floor(Math.random() * 4) : 6 + Math.floor(Math.random() * 5))
+          if (nextPet.state === 'roam') {
+            nextPet.direction = Math.random() < 0.5 ? -1 : 1
+          }
+        }
+
+        if (nextPet.state === 'roam') {
+          nextPet.x += nextPet.direction * (4 + Math.random() * 5)
+          if (nextPet.x < 8) {
+            nextPet.x = 8
+            nextPet.direction = 1
+          }
+          if (nextPet.x > 76) {
+            nextPet.x = 76
+            nextPet.direction = -1
+          }
+          nextPet.frame = nextPet.ticks % 2 === 0 ? 1 : 6
+        } else if (nextPet.state === 'nap') {
+          nextPet.frame = Math.random() < 0.7 ? 2 : 5
+        } else {
+          nextPet.frame = 5
+        }
+        return nextPet
+      })
+      this.setData({ roomPets: next })
+    }, ROOM_TICK)
+  },
+
+  stopRoomAnimation() {
+    if (this._roomTimer) {
+      clearInterval(this._roomTimer)
+      this._roomTimer = null
+    }
   },
 
   refresh() {
     const pets = store.getPets()
     const events = store.getEvents()
     const pendingCount = events.filter(e => !e.done).length
+    const roomPets = pets.slice(0, 4).map((pet, index) => ({
+      id: pet.id,
+      name: pet.name || '毛孩子',
+      sheet: store.spriteFor(pet, index).sheet,
+      frame: 0,
+      state: 'roam',
+      x: 12 + index * 18,
+      ticks: 0,
+      nextIn: 2 + Math.floor(Math.random() * 4),
+      direction: Math.random() < 0.5 ? -1 : 1
+    }))
     this.setData({
+      roomPets,
       petCount: pets.length,
       eventCount: events.length,
       doneCount: events.length - pendingCount,
       pendingCount
     })
+  },
+
+  onPetTap(e) {
+    const { id } = e.currentTarget.dataset
+    if (!id) return
+    wx.navigateTo({ url: `/pages/pet-detail/pet-detail?id=${id}` })
   },
 
   onMenuTap(e) {

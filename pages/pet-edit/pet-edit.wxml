@@ -7,28 +7,30 @@
 <scroll-view class="scrollarea" scroll-y type="list">
   <view class="page-content">
     <view class="avatar-section card">
-      <view class="avatar-preview orb-surface orb-float">
-        <view class="orb-shine"></view>
-        <image wx:if="{{form.avatarType === 'image'}}" class="avatar-preview-img" src="{{form.avatar}}" mode="aspectFill"></image>
-        <text wx:else class="avatar-preview-emoji">{{form.avatar}}</text>
+      <view class="avatar-preview-row">
+        <view class="preview-block">
+          <view class="avatar-preview orb-surface orb-float">
+            <view class="orb-shine"></view>
+            <image wx:if="{{form.photo}}" class="avatar-preview-img" src="{{form.photo}}" mode="aspectFill"></image>
+            <text wx:else class="avatar-preview-emoji">📷</text>
+          </view>
+          <text class="preview-label">上传照片</text>
+        </view>
+        <view class="preview-block">
+          <view class="avatar-preview pixel-preview">
+            <image wx:if="{{pixelAvatar}}" class="avatar-preview-img" src="{{pixelAvatar}}" mode="aspectFill"></image>
+            <text wx:else class="avatar-preview-emoji">🐾</text>
+          </view>
+          <text class="preview-label">像素形象</text>
+        </view>
       </view>
-      <text class="avatar-tip">给毛孩子选个头像</text>
-      <view class="chips avatar-chips">
-        <view
-          class="avatar-chip {{form.avatarType === 'emoji' && form.avatar === item ? 'avatar-chip-active' : ''}}"
-          wx:for="{{avatarList}}"
-          wx:key="*this"
-          bindtap="onSelectAvatar"
-          data-value="{{item}}"
-          hover-class="orb-hover"
-        >{{item}}</view>
-      </view>
-      <view class="upload-btn" bindtap="onChooseImage" hover-class="btn-hover">📷 从相册上传照片</view>
+      <text class="avatar-tip">上传照片后，按种类与性别自动生成同款像素动画</text>
+      <view class="upload-btn" bindtap="onChooseImage" hover-class="btn-hover">{{form.photo ? '重新上传照片' : '📷 从相册上传照片'}}</view>
     </view>
 
     <view class="form-card">
       <view class="field">
-        <text class="field-label">名字</text>
+        <text class="field-label">名字 *</text>
         <input class="field-input" value="{{form.name}}" data-field="name" bindinput="onInput" placeholder="例如：团子" placeholder-class="field-placeholder" maxlength="20" />
       </view>
       <view class="field">
@@ -37,7 +39,7 @@
       </view>
       <picker mode="date" class="field-picker" value="{{form.birthday || today}}" start="1990-01-01" end="{{today}}" bindchange="onBirthdayChange">
         <view class="field field-last">
-          <text class="field-label">生日</text>
+          <text class="field-label">生日 *</text>
           <text class="field-value {{form.birthday ? '' : 'field-placeholder'}}">{{form.birthday || '请选择出生日期'}}</text>
           <text class="field-arrow">›</text>
         </view>
@@ -79,7 +81,7 @@
     </view>
 
     <view class="form-card chips-card">
-      <text class="block-label">种类</text>
+      <text class="block-label">种类 *</text>
       <view class="chips">
         <view
           class="chip {{form.species === item.key ? 'chip-active' : ''}}"
@@ -89,7 +91,7 @@
           data-key="{{item.key}}"
         >{{item.icon}} {{item.name}}</view>
       </view>
-      <text class="block-label">性别</text>
+      <text class="block-label">性别 *</text>
       <view class="chips">
         <view
           class="chip {{form.gender === item.key ? 'chip-active' : ''}}"
@@ -106,7 +108,7 @@
       <textarea class="note-input" value="{{form.note}}" data-field="note" bindinput="onInput" placeholder="性格、喜好、过敏史……随手写点什么" placeholder-class="field-placeholder" maxlength="200" auto-height></textarea>
     </view>
 
-    <view class="form-hint">生日会用于计算年龄，并在生日临近时出现在首页提醒中。数据仅保存在本机。</view>
+    <view class="form-hint">照片、生日、性别和种类为必填；像素形象会根据种类与性别自动匹配，并用于首页动画。数据仅保存在本机。</view>
   </view>
 </scroll-view>
 

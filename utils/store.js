@@ -2,6 +2,8 @@ const dateUtil = require('./date.js')
 
 const PETS_KEY = 'my_pets_v1'
 const EVENTS_KEY = 'my_pet_events_v1'
+const INVENTORY_KEY = 'my_pet_inventory_v1'
+const LOW_STOCK_DAYS = 3
 
 const SPECIES = [
   { key: 'cat', name: '猫咪', icon: '🐱', bg: 'rgba(255, 170, 120, 0.38)' },
@@ -30,6 +32,48 @@ const EVENT_TYPES = [
 
 const AVATARS = ['🐱', '🐶', '🐰', '🐹', '🦊', '🐢', '🐦', '🐷']
 
+const SPRITE_KEYS = [
+  'cat-orange', 'cat-tuxedo', 'cat-calico', 'cat-siamese', 'cat-black', 'cat-british',
+  'dog-corgi', 'dog-shiba', 'dog-golden', 'dog-husky', 'dog-poodle', 'dog-frenchie'
+]
+
+const SPRITE_RULES = {
+  cat: [
+    { keys: ['橘', 'orange'], key: 'cat-orange' },
+    { keys: ['奶牛', '黑白', 'tuxedo'], key: 'cat-tuxedo' },
+    { keys: ['三花', 'calico'], key: 'cat-calico' },
+    { keys: ['暹罗', 'siamese'], key: 'cat-siamese' },
+    { keys: ['黑猫', 'black'], key: 'cat-black' },
+    { keys: ['英短', '蓝猫', 'british'], key: 'cat-british' }
+  ],
+  dog: [
+    { keys: ['柯基', 'corgi'], key: 'dog-corgi' },
+    { keys: ['柴犬', '柴狗', 'shiba'], key: 'dog-shiba' },
+    { keys: ['金毛', 'golden'], key: 'dog-golden' },
+    { keys: ['哈士奇', '二哈', 'husky'], key: 'dog-husky' },
+    { keys: ['泰迪', '贵宾', 'poodle'], key: 'dog-poodle' },
+    { keys: ['法斗', '斗牛', 'french'], key: 'dog-frenchie' }
+  ]
+}
+
+const DEFAULT_SPRITES = {
+  cat: {
+    boy: ['cat-orange', 'cat-british', 'cat-siamese'],
+    girl: ['cat-calico', 'cat-tuxedo', 'cat-siamese'],
+    unknown: ['cat-orange', 'cat-calico', 'cat-british']
+  },
+  dog: {
+    boy: ['dog-corgi', 'dog-husky', 'dog-shiba'],
+    girl: ['dog-shiba', 'dog-golden', 'dog-poodle'],
+    unknown: ['dog-corgi', 'dog-shiba', 'dog-husky']
+  },
+  other: {
+    boy: ['dog-corgi', 'cat-orange'],
+    girl: ['cat-calico', 'dog-shiba'],
+    unknown: ['cat-tuxedo', 'dog-golden']
+  }
+}
+
 function findItem(list, key, value) {
   return list.find(item => item[key] === value) || null
 }
@@ -46,8 +90,43 @@ function typeOf(key) {
   return findItem(EVENT_TYPES, 'key', key) || findItem(EVENT_TYPES, 'key', 'other')
 }
 
+function spriteKeyFor(pet, index) {
+  if (pet && SPRITE_KEYS.indexOf(pet.spriteKey) >= 0) return pet.spriteKey
+  const breed = String((pet && pet.breed) || '').toLowerCase()
+  const species = (pet && pet.species) || 'other'
+  const match = (SPRITE_RULES[species] || []).find(rule =>
+    rule.keys.some(key => breed.indexOf(key) >= 0)
+  )
+  if (match) return match.key
+  const group = DEFAULT_SPRITES[species] || DEFAULT_SPRITES.other
+  const gender = (pet && pet.gender) || 'unknown'
+  const list = group[gender] || group.unknown
+  return list[(index || 0) % list.length]
+}
+
+function spritePaths(key) {
+  return {
+    key,
+    avatar: `/assets/banner-pets/${key}.png`,
+    sheet: `/assets/banner-pets/anim/${key}.png`
+  }
+}
+
+function spriteFor(pet, index) {
+  return spritePaths(spriteKeyFor(pet, index))
+}
+
 function genId() {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
+}
+
+function toNumber(value) {
+  const number = Number(value)
+  return isFinite(number) && number > 0 ? number : 0
+}
+
+function round1(value) {
+  return Math.round(value * 10) / 10
 }
 
 function read(key) {
@@ -94,6 +173,7 @@ function savePet(pet) {
 function removePet(id) {
   write(PETS_KEY, getPets().filter(pet => pet.id !== id))
   write(EVENTS_KEY, getEvents().filter(event => event.petId !== id))
+  write(INVENTORY_KEY, getInventories().filter(item => item.petId !== id))
 }
 
 function getEvents() {
@@ -161,6 +241,97 @@ function toggleEvent(id) {
 
 function removeEvent(id) {
   write(EVENTS_KEY, getEvents().filter(event => event.id !== id))
+}
+
+function getInventories() {
+  return read(INVENTORY_KEY)
+}
+
+function getInventory(petId) {
+  const record = getInventories().find(item => item.petId === petId)
+  return record ? decorateInventory(record) : null
+}
+
+function decorateInventory(record) {
+  if (!record) return null
+  const pet = getPet(record.petId)
+  const elapsedDays = Math.max(0, -(dateUtil.diffDays(record.updatedAt || record.date) || 0))
+  const dailyCans = toNumber(record.dailyCans)
+  const dailyKibble = toNumber(record.dailyKibble)
+  const remainingCans = round1(Math.max(0, toNumber(record.cans) - dailyCans * elapsedDays))
+  const remainingKibble = round1(Math.max(0, toNumber(record.kibble) - dailyKibble * elapsedDays))
+  const canDays = dailyCans > 0 ? Math.ceil(remainingCans / dailyCans) : null
+  const kibbleDays = dailyKibble > 0 ? Math.ceil(remainingKibble / dailyKibble) : null
+  const petName = pet ? pet.name : '毛孩子'
+  const alerts = []
+
+  if (dailyCans > 0 && canDays !== null && canDays <= LOW_STOCK_DAYS) {
+    alerts.push({
+      id: `${record.id}-cans`,
+      petId: record.petId,
+      petName,
+      item: '罐头',
+      days: canDays,
+      tone: canDays <= 0 ? 'overdue' : 'soon',
+      title: `${petName} · 罐头库存${canDays <= 0 ? '已耗尽' : '即将耗尽'}`,
+      detail: canDays <= 0 ? '预计罐头已用完，记得补货' : `预计还能吃 ${canDays} 天`
+    })
+  }
+  if (dailyKibble > 0 && kibbleDays !== null && kibbleDays <= LOW_STOCK_DAYS) {
+    alerts.push({
+      id: `${record.id}-kibble`,
+      petId: record.petId,
+      petName,
+      item: '猫粮',
+      days: kibbleDays,
+      tone: kibbleDays <= 0 ? 'overdue' : 'soon',
+      title: `${petName} · 猫粮库存${kibbleDays <= 0 ? '已耗尽' : '即将耗尽'}`,
+      detail: kibbleDays <= 0 ? '预计猫粮已用完，记得补货' : `预计还能吃 ${kibbleDays} 天`
+    })
+  }
+
+  return Object.assign({}, record, {
+    petName,
+    elapsedDays,
+    dailyCans,
+    dailyKibble,
+    remainingCans,
+    remainingKibble,
+    canDays,
+    kibbleDays,
+    alerts,
+    stockText: `罐头 ${remainingCans} 个 · 猫粮 ${remainingKibble}g`
+  })
+}
+
+function getStockAlerts() {
+  const alerts = []
+  getInventories().forEach(record => {
+    const inventory = decorateInventory(record)
+    if (!inventory) return
+    inventory.alerts.forEach(alert => alerts.push(alert))
+  })
+  return alerts.sort((a, b) => a.days - b.days)
+}
+
+function saveInventoryPurchase(data) {
+  const list = getInventories()
+  const index = list.findIndex(item => item.petId === data.petId)
+  const current = index >= 0 ? decorateInventory(list[index]) : null
+  const record = {
+    id: current ? current.id : genId(),
+    petId: data.petId,
+    cans: round1((current ? current.remainingCans : 0) + toNumber(data.cans)),
+    kibble: round1((current ? current.remainingKibble : 0) + toNumber(data.kibble)),
+    dailyCans: toNumber(data.dailyCans),
+    dailyKibble: toNumber(data.dailyKibble),
+    updatedAt: dateUtil.today(),
+    createdAt: current ? current.createdAt : Date.now()
+  }
+  if (index >= 0) list[index] = record
+  else list.push(record)
+  write(INVENTORY_KEY, list)
+  return decorateInventory(record)
 }
 
 function decoratePet(pet, events) {
@@ -250,10 +421,14 @@ module.exports = {
   GENDERS,
   EVENT_TYPES,
   AVATARS,
+  SPRITE_KEYS,
   genId,
   speciesOf,
   genderOf,
   typeOf,
+  spriteKeyFor,
+  spritePaths,
+  spriteFor,
   getPets,
   getPet,
   savePet,
@@ -264,6 +439,11 @@ module.exports = {
   saveEvent,
   toggleEvent,
   removeEvent,
+  getInventories,
+  getInventory,
+  decorateInventory,
+  getStockAlerts,
+  saveInventoryPurchase,
   decoratePet,
   decorateEvent,
   getDueEvents,

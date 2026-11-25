@@ -4,17 +4,19 @@ const dateUtil = require('../../utils/date.js')
 function emptyForm() {
   return {
     name: '',
-    species: 'cat',
+    species: '',
     breed: '',
-    gender: 'unknown',
+    gender: '',
     birthday: '',
     weight: '',
     weightUnit: 'kg',
     neutered: 'unknown',
     adoptedAt: '',
     allergy: '',
-    avatar: '🐱',
-    avatarType: 'emoji',
+    photo: '',
+    spriteKey: '',
+    avatar: '',
+    avatarType: 'image',
     note: ''
   }
 }
@@ -26,7 +28,8 @@ Page({
     form: emptyForm(),
     speciesList: store.SPECIES,
     genders: store.GENDERS,
-    avatarList: store.AVATARS,
+    pixelAvatar: '',
+    pixelKey: '',
     neuterOptions: [
       { key: 'yes', name: '已绝育' },
       { key: 'no', name: '未绝育' },
@@ -38,7 +41,7 @@ Page({
   onLoad(options) {
     const today = dateUtil.today()
     if (!options.id) {
-      this.setData({ today })
+      this.setData({ today }, () => this.refreshPixelPreview())
       return
     }
     const pet = store.getPet(options.id)
@@ -49,45 +52,52 @@ Page({
     }
     const form = {
       name: pet.name || '',
-      species: pet.species || 'cat',
+      species: pet.species || '',
       breed: pet.breed || '',
-      gender: pet.gender || 'unknown',
+      gender: pet.gender || '',
       birthday: pet.birthday || '',
       weight: pet.weight || '',
       weightUnit: pet.weightUnit || 'kg',
       neutered: pet.neutered || 'unknown',
       adoptedAt: pet.adoptedAt || '',
       allergy: pet.allergy || '',
-      avatar: pet.avatar || store.speciesOf(pet.species).icon,
-      avatarType: pet.avatarType || 'emoji',
+      photo: pet.photo || (pet.avatarType === 'image' ? pet.avatar : ''),
+      spriteKey: pet.spriteKey || '',
+      avatar: pet.avatar || '',
+      avatarType: pet.avatarType || 'image',
       note: pet.note || ''
     }
-    this.setData({ id: pet.id, isEdit: true, form, today })
+    this.setData({ id: pet.id, isEdit: true, form, today }, () => this.refreshPixelPreview())
+  },
+
+  refreshPixelPreview() {
+    const form = this.data.form
+    const sprite = store.spriteFor({
+      species: form.species,
+      gender: form.gender,
+      breed: form.breed,
+      spriteKey: form.spriteKey
+    }, 0)
+    this.setData({ pixelAvatar: sprite.avatar, pixelKey: sprite.key })
   },
 
   onInput(e) {
     const { field } = e.currentTarget.dataset
-    this.setData({ [`form.${field}`]: e.detail.value })
+    const patch = { [`form.${field}`]: e.detail.value }
+    if (field === 'breed') patch['form.spriteKey'] = ''
+    this.setData(patch, () => {
+      if (field === 'breed') this.refreshPixelPreview()
+    })
   },
 
   onSelectSpecies(e) {
     const { key } = e.currentTarget.dataset
-    const patch = { 'form.species': key }
-    const currentDefault = store.speciesOf(this.data.form.species).icon
-    if (this.data.form.avatarType !== 'image' && this.data.form.avatar === currentDefault) {
-      patch['form.avatar'] = store.speciesOf(key).icon
-    }
-    this.setData(patch)
+    this.setData({ 'form.species': key, 'form.spriteKey': '' }, () => this.refreshPixelPreview())
   },
 
   onSelectGender(e) {
     const { key } = e.currentTarget.dataset
-    this.setData({ 'form.gender': key })
-  },
-
-  onSelectAvatar(e) {
-    const { value } = e.currentTarget.dataset
-    this.setData({ 'form.avatar': value, 'form.avatarType': 'emoji' })
+    this.setData({ 'form.gender': key, 'form.spriteKey': '' }, () => this.refreshPixelPreview())
   },
 
   onChooseImage() {
@@ -108,7 +118,7 @@ Page({
         } catch (err) {
           wx.showToast({ title: '照片仅本次可用', icon: 'none' })
         }
-        this.setData({ 'form.avatar': savedPath, 'form.avatarType': 'image' })
+        this.setData({ 'form.photo': savedPath, 'form.avatarType': 'image' }, () => this.refreshPixelPreview())
       }
     })
   },
@@ -136,6 +146,20 @@ Page({
       wx.showToast({ title: '请填写宠物名字', icon: 'none' })
       return
     }
+    if (!this.data.isEdit) {
+      if (!form.photo) {
+        wx.showToast({ title: '请上传宠物照片', icon: 'none' })
+        return
+      }
+      if (!form.species) {
+        wx.showToast({ title: '请选择种类', icon: 'none' })
+        return
+      }
+      if (!form.gender || form.gender === 'unknown') {
+        wx.showToast({ title: '请选择性别', icon: 'none' })
+        return
+      }
+    }
     if (!form.birthday) {
       wx.showToast({ title: '请选择生日', icon: 'none' })
       return
@@ -153,14 +177,28 @@ Page({
       return
     }
 
-    const record = store.savePet(Object.assign({}, form, {
+    const sprite = store.spriteFor({
+      species: form.species,
+      gender: form.gender,
+      breed: form.breed.trim(),
+      spriteKey: form.spriteKey
+    }, 0)
+    const petData = Object.assign({}, form, {
       id: this.data.id,
       name,
       breed: form.breed.trim(),
       weight: form.weight.trim(),
       allergy: form.allergy.trim(),
-      note: form.note.trim()
-    }))
+      note: form.note.trim(),
+      photo: form.photo,
+      spriteKey: sprite.key,
+      spriteSheet: sprite.sheet,
+      avatar: sprite.avatar,
+      avatarType: 'image'
+    })
+    delete petData.pixelAvatar
+    delete petData.pixelKey
+    const record = store.savePet(petData)
 
     wx.showToast({ title: '已保存', icon: 'success' })
     setTimeout(() => {
