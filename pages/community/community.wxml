@@ -1,0 +1,76 @@
+<view class="page">
+  <navigation-bar title="宠物社区" logo="/assets/nav-logo.png" back="{{false}}" color="#2B2F36" background="#F4F5F7"></navigation-bar>
+
+  <scroll-view class="page-body" scroll-y type="list">
+    <!-- Composer -->
+    <view class="composer card">
+      <image class="composer-avatar pixel-img" src="/assets/profile-avatar.png" mode="aspectFill"></image>
+      <view class="composer-body">
+        <textarea
+          class="composer-input"
+          placeholder="分享毛孩子的日常…"
+          placeholder-class="composer-placeholder"
+          value="{{draft}}"
+          bindinput="onDraftInput"
+          maxlength="140"
+          auto-height
+        ></textarea>
+        <view class="composer-actions">
+          <text class="composer-count">{{draft.length}}/140</text>
+          <button class="btn-primary publish-btn" size="mini" bindtap="onPublish">发布</button>
+        </view>
+      </view>
+    </view>
+
+    <view class="filter-bar">
+      <view
+        class="filter-chip {{activeFilter === item.key ? 'filter-chip-active' : ''}}"
+        wx:for="{{filters}}"
+        wx:key="key"
+        bindtap="onSwitchFilter"
+        data-key="{{item.key}}"
+      >{{item.name}}</view>
+    </view>
+
+    <!-- Posts -->
+    <view
+      class="post-card card"
+      wx:for="{{displayed}}"
+      wx:key="id"
+    >
+      <view class="post-head">
+        <image class="post-avatar pixel-img" src="{{item.avatar}}" mode="aspectFill"></image>
+        <text class="post-user">{{item.user}}</text>
+      </view>
+      <text class="post-content">{{item.content}}</text>
+      <view class="post-actions">
+        <view
+          class="action-btn {{item.liked ? 'action-liked' : ''}}"
+          bindtap="onToggleLike"
+          data-id="{{item.id}}"
+          hover-class="action-hover"
+        >
+          <text class="action-icon">👍</text>
+          <text class="action-text">+{{item.likes}}</text>
+        </view>
+        <view class="action-btn" bindtap="onAddComment" data-id="{{item.id}}" hover-class="action-hover">
+          <text class="action-icon">💬</text>
+          <text class="action-text">{{item.comments}}</text>
+        </view>
+        <view class="action-btn {{item.favorite ? 'action-fav' : ''}}" bindtap="onToggleFavorite" data-id="{{item.id}}" hover-class="action-hover">
+          <text class="action-icon">⭐</text>
+          <text class="action-text">{{item.favorite ? '已收藏' : '收藏'}}</text>
+        </view>
+      </view>
+      <view wx:if="{{item.commentList.length > 0}}" class="comment-list">
+        <view class="comment-item" wx:for="{{item.commentList}}" wx:for-item="comment" wx:key="id">
+          <text class="comment-user">{{comment.user}}：</text>
+          <text class="comment-text">{{comment.content}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="list-end">— 到底啦 —</view>
+    <view class="pad-bottom"></view>
+  </scroll-view>
+</view>

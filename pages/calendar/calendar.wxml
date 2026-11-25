@@ -1,0 +1,60 @@
+<view class="bg-decor">
+  <view class="blob blob-a"></view>
+  <view class="blob blob-b"></view>
+  <view class="blob blob-c"></view>
+</view>
+<navigation-bar title="记录日历" logo="/assets/nav-logo.png" back="{{true}}" color="#2B2F36" background="#F4F5F7"></navigation-bar>
+<scroll-view class="scrollarea" scroll-y type="list">
+  <view class="page-content">
+    <view class="calendar-card card">
+      <view class="month-bar">
+        <view class="month-arrow" bindtap="onPrevMonth">‹</view>
+        <text class="month-title">{{monthText}}</text>
+        <view class="month-arrow" bindtap="onNextMonth">›</view>
+      </view>
+      <view class="weekday-row">
+        <text class="weekday" wx:for="{{weekdays}}" wx:key="*this">{{item}}</text>
+      </view>
+      <view class="week-row" wx:for="{{weeks}}" wx:for-item="week" wx:key="*this">
+        <view
+          class="day-cell {{item.inMonth ? '' : 'day-muted'}} {{item.isToday ? 'day-today' : ''}} {{item.date === selectedDate ? 'day-selected' : ''}}"
+          wx:for="{{week}}"
+          wx:for-item="item"
+          wx:key="date"
+          bindtap="onSelectDay"
+          data-date="{{item.date}}"
+        >
+          <text class="day-number">{{item.day}}</text>
+          <view wx:if="{{item.count > 0}}" class="day-dot"></view>
+        </view>
+      </view>
+    </view>
+
+    <view class="section-head">
+      <text class="section-title">{{selectedDate}} 的记录</text>
+      <text class="section-sub">共 {{dayEvents.length}} 条</text>
+    </view>
+
+    <view
+      class="day-event card"
+      wx:for="{{dayEvents}}"
+      wx:key="id"
+      bindtap="onOpenEvent"
+      data-id="{{item.id}}"
+      hover-class="card-hover"
+    >
+      <view class="day-event-icon" style="background: {{item.typeBg}}">{{item.typeIcon}}</view>
+      <view class="day-event-main">
+        <text class="day-event-title">{{item.petName}} · {{item.title}}</text>
+        <text class="day-event-meta">{{item.typeName}}<block wx:if="{{item.amountText}}"> · {{item.amountText}}</block> · {{item.statusText}}</text>
+      </view>
+      <text class="day-event-arrow">›</text>
+    </view>
+
+    <view wx:if="{{dayEvents.length === 0}}" class="empty-state day-empty">
+      <view class="empty-icon">🗓️</view>
+      <text class="empty-title">这天还没有记录</text>
+      <text class="empty-desc">点日期查看当天事项，或回到首页添加记录</text>
+    </view>
+  </view>
+</scroll-view>

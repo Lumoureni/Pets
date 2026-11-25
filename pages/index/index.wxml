@@ -1,0 +1,139 @@
+<view class="page">
+  <navigation-bar title="宠物小窝" logo="/assets/nav-logo.png" back="{{false}}" color="#2B2F36" background="#F4F5F7"></navigation-bar>
+
+  <scroll-view class="page-body" scroll-y type="list">
+    <!-- Pixel pet banner: pets come from saved profiles -->
+    <view class="banner card" bindtap="onAddPet" hover-class="banner-hover">
+      <image class="banner-bg pixel-img" src="/assets/banner-bg.png" mode="aspectFill"></image>
+      <view wx:if="{{bannerPets.length > 0}}" class="banner-pets">
+        <view
+          class="banner-pet"
+          wx:for="{{bannerPets}}"
+          wx:key="id"
+          catchtap="onOpenPet"
+          data-id="{{item.id}}"
+          hover-class="banner-pet-hover"
+        >
+          <image class="banner-pet-img pixel-img" src="{{item.img}}" mode="widthFix"></image>
+          <text class="banner-pet-name">{{item.name}}</text>
+        </view>
+      </view>
+      <view wx:if="{{bannerPets.length > 0}}" class="banner-add" catchtap="onAddPet">＋ 添加宠物</view>
+      <view wx:else class="banner-empty">
+        <text class="banner-empty-title">还没有毛孩子</text>
+        <text class="banner-empty-desc">点这里添加第一位小伙伴 →</text>
+      </view>
+    </view>
+
+    <!-- Feature grid -->
+    <view class="feature-card card">
+      <view class="feature-head">
+        <text class="feature-title">快捷记录</text>
+        <text class="feature-sub">点一下就记好</text>
+      </view>
+      <view
+        class="feature-item"
+        wx:for="{{features}}"
+        wx:key="key"
+        bindtap="onFeatureTap"
+        data-page="{{item.page}}"
+        data-key="{{item.key}}"
+        hover-class="feature-hover"
+      >
+        <view class="feature-icon-wrap">
+          <image class="feature-icon pixel-img" src="{{item.icon}}" mode="aspectFit"></image>
+        </view>
+        <text class="feature-label">{{item.label}}</text>
+      </view>
+    </view>
+
+    <!-- Today tasks -->
+    <view class="task-card card">
+      <view class="task-head">
+        <text class="task-title">今日待办</text>
+        <text class="calendar-link" bindtap="onOpenCalendar">查看日历 ›</text>
+      </view>
+      <block wx:if="{{dueTasks.length > 0}}">
+        <view
+          class="task-row"
+          wx:for="{{dueTasks}}"
+          wx:key="id"
+          bindtap="onOpenReminder"
+          data-kind="event"
+          data-event-id="{{item.eventId}}"
+          data-pet-id="{{item.petId}}"
+          hover-class="card-hover"
+        >
+          <view class="reminder-dot {{item.statusTone}}"></view>
+          <view class="reminder-main">
+            <text class="reminder-title">{{item.petName}} · {{item.title}}</text>
+            <text class="reminder-detail">{{item.detailText}}</text>
+          </view>
+          <text class="reminder-arrow">›</text>
+        </view>
+      </block>
+      <view wx:else class="task-empty">今天没有到期事项，去看看日历安排吧</view>
+    </view>
+
+    <!-- Owner row -->
+    <view class="owner-row card">
+      <view class="owner-avatar-wrap">
+        <image class="owner-avatar pixel-img" src="/assets/nav-logo.png" mode="aspectFit"></image>
+      </view>
+      <view class="owner-meta">
+        <text class="owner-name">{{userName}}</text>
+        <text class="owner-desc">的小窝</text>
+      </view>
+      <text class="owner-tag">主人</text>
+    </view>
+
+    <!-- Reminders -->
+    <block wx:if="{{reminders.length > 0}}">
+      <view class="section-head">
+        <text class="section-title">近期提醒</text>
+        <text class="section-sub">共 {{reminders.length}} 项</text>
+      </view>
+      <view class="reminder-list">
+        <view
+          class="reminder-card card"
+          wx:for="{{reminders}}"
+          wx:key="id"
+          bindtap="onOpenReminder"
+          data-kind="{{item.kind}}"
+          data-event-id="{{item.eventId}}"
+          data-pet-id="{{item.petId}}"
+          hover-class="card-hover"
+        >
+          <view class="reminder-dot {{item.tone}}"></view>
+          <view class="reminder-main">
+            <text class="reminder-title">{{item.title}}</text>
+            <text class="reminder-detail">{{item.detail}}</text>
+          </view>
+          <text class="reminder-arrow">›</text>
+        </view>
+      </view>
+    </block>
+
+    <view class="pad-bottom"></view>
+  </scroll-view>
+
+  <view wx:if="{{quickVisible}}" class="modal-mask" bindtap="onQuickClose">
+    <view class="modal-card card" catchtap="noop">
+      <text class="modal-title">快速记录 · {{quickTitle}}</text>
+      <picker mode="selector" range="{{quickPetNames}}" value="{{quickPetIndex}}" bindchange="onQuickPickPet">
+        <view class="modal-field">
+          <text class="modal-label">毛孩子</text>
+          <text class="modal-value">{{quickPetNames[quickPetIndex] || '请选择'}}</text>
+        </view>
+      </picker>
+      <view class="modal-field">
+        <text class="modal-label">{{quickValueLabel}}</text>
+        <input class="modal-input" value="{{quickAmount}}" placeholder="{{quickValueUnit}}" placeholder-class="field-placeholder" bindinput="onQuickAmountInput" />
+      </view>
+      <view class="modal-actions">
+        <view class="modal-btn modal-cancel" bindtap="onQuickClose">取消</view>
+        <view class="modal-btn modal-confirm" bindtap="onQuickConfirm">记一笔</view>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,116 @@
+<view class="bg-decor">
+  <view class="blob blob-a"></view>
+  <view class="blob blob-b"></view>
+  <view class="blob blob-c"></view>
+</view>
+<navigation-bar title="{{isEdit ? '编辑档案' : '添加宠物'}}" logo="/assets/nav-logo.png" back="{{true}}" color="#2B2F36" background="#F4F5F7"></navigation-bar>
+<scroll-view class="scrollarea" scroll-y type="list">
+  <view class="page-content">
+    <view class="avatar-section card">
+      <view class="avatar-preview orb-surface orb-float">
+        <view class="orb-shine"></view>
+        <image wx:if="{{form.avatarType === 'image'}}" class="avatar-preview-img" src="{{form.avatar}}" mode="aspectFill"></image>
+        <text wx:else class="avatar-preview-emoji">{{form.avatar}}</text>
+      </view>
+      <text class="avatar-tip">给毛孩子选个头像</text>
+      <view class="chips avatar-chips">
+        <view
+          class="avatar-chip {{form.avatarType === 'emoji' && form.avatar === item ? 'avatar-chip-active' : ''}}"
+          wx:for="{{avatarList}}"
+          wx:key="*this"
+          bindtap="onSelectAvatar"
+          data-value="{{item}}"
+          hover-class="orb-hover"
+        >{{item}}</view>
+      </view>
+      <view class="upload-btn" bindtap="onChooseImage" hover-class="btn-hover">📷 从相册上传照片</view>
+    </view>
+
+    <view class="form-card">
+      <view class="field">
+        <text class="field-label">名字</text>
+        <input class="field-input" value="{{form.name}}" data-field="name" bindinput="onInput" placeholder="例如：团子" placeholder-class="field-placeholder" maxlength="20" />
+      </view>
+      <view class="field">
+        <text class="field-label">品种</text>
+        <input class="field-input" value="{{form.breed}}" data-field="breed" bindinput="onInput" placeholder="例如：英短 / 柯基" placeholder-class="field-placeholder" maxlength="30" />
+      </view>
+      <picker mode="date" class="field-picker" value="{{form.birthday || today}}" start="1990-01-01" end="{{today}}" bindchange="onBirthdayChange">
+        <view class="field field-last">
+          <text class="field-label">生日</text>
+          <text class="field-value {{form.birthday ? '' : 'field-placeholder'}}">{{form.birthday || '请选择出生日期'}}</text>
+          <text class="field-arrow">›</text>
+        </view>
+      </picker>
+    </view>
+
+    <view class="form-card">
+      <view class="field">
+        <text class="field-label">体重</text>
+        <input class="field-input" value="{{form.weight}}" data-field="weight" bindinput="onInput" placeholder="例如：4.2" placeholder-class="field-placeholder" maxlength="10" />
+        <text class="unit-chip {{form.weightUnit === 'kg' ? 'unit-chip-active' : ''}}" data-key="kg" bindtap="onSelectWeightUnit">kg</text>
+        <text class="unit-chip {{form.weightUnit === '斤' ? 'unit-chip-active' : ''}}" data-key="斤" bindtap="onSelectWeightUnit">斤</text>
+      </view>
+      <picker mode="date" class="field-picker" value="{{form.adoptedAt || today}}" start="1990-01-01" end="{{today}}" bindchange="onAdoptedAtChange">
+        <view class="field field-last">
+          <text class="field-label">到家日</text>
+          <text class="field-value {{form.adoptedAt ? '' : 'field-placeholder'}}">{{form.adoptedAt || '选填'}}</text>
+          <text class="field-arrow">›</text>
+        </view>
+      </picker>
+    </view>
+
+    <view class="form-card chips-card">
+      <text class="block-label">绝育状态</text>
+      <view class="chips">
+        <view
+          class="chip {{form.neutered === item.key ? 'chip-active' : ''}}"
+          wx:for="{{neuterOptions}}"
+          wx:key="key"
+          bindtap="onSelectNeutered"
+          data-key="{{item.key}}"
+        >{{item.name}}</view>
+      </view>
+    </view>
+
+    <view class="form-card note-card">
+      <text class="block-label">过敏 / 病史</text>
+      <textarea class="note-input" value="{{form.allergy}}" data-field="allergy" bindinput="onInput" placeholder="例如：鸡肉过敏、皮肤敏感……" placeholder-class="field-placeholder" maxlength="200" auto-height></textarea>
+    </view>
+
+    <view class="form-card chips-card">
+      <text class="block-label">种类</text>
+      <view class="chips">
+        <view
+          class="chip {{form.species === item.key ? 'chip-active' : ''}}"
+          wx:for="{{speciesList}}"
+          wx:key="key"
+          bindtap="onSelectSpecies"
+          data-key="{{item.key}}"
+        >{{item.icon}} {{item.name}}</view>
+      </view>
+      <text class="block-label">性别</text>
+      <view class="chips">
+        <view
+          class="chip {{form.gender === item.key ? 'chip-active' : ''}}"
+          wx:for="{{genders}}"
+          wx:key="key"
+          bindtap="onSelectGender"
+          data-key="{{item.key}}"
+        >{{item.name}}</view>
+      </view>
+    </view>
+
+    <view class="form-card note-card">
+      <view class="block-label">备注</view>
+      <textarea class="note-input" value="{{form.note}}" data-field="note" bindinput="onInput" placeholder="性格、喜好、过敏史……随手写点什么" placeholder-class="field-placeholder" maxlength="200" auto-height></textarea>
+    </view>
+
+    <view class="form-hint">生日会用于计算年龄，并在生日临近时出现在首页提醒中。数据仅保存在本机。</view>
+  </view>
+</scroll-view>
+
+<view class="footer-bar">
+  <view wx:if="{{isEdit}}" class="btn btn-danger delete-btn" bindtap="onDelete" hover-class="btn-hover">删除这只宠物</view>
+  <view class="btn btn-primary" bindtap="onSave" hover-class="btn-hover">保存档案</view>
+</view>
